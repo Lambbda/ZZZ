@@ -19,7 +19,6 @@ public class MainActivity extends AppCompatActivity {
                     t_push=java.util.Calendar.getInstance().getTime();
                 } else {
                     t_release=java.util.Calendar.getInstance().getTime();
-                    
                 }
             }
         });
