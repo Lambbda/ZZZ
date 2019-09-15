@@ -3,11 +3,9 @@ package com.example.calendar;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
-import android.content.Context;
 import android.widget.*;
 import java.util.Date;
 import java.util.ArrayList;
-import java.text.DateFormat;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -25,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
         for(int i=0;i<array.size();i++)
         {
             editor.remove("Array_" + i);
-            editor.putString("Array_" + i, array.get(i).toString());
+            editor.putString("Array_" + i, Long.toString(array.get(i).getTime()));
         }
         return editor.commit();
     }
@@ -38,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
         for(int i=0;i<size;i++)
         {
-            array.add(new Date(memory.getString("Array_" + i, null)));
+            array.add(new Date(Long.parseLong(memory.getString("Array_" + i, null))));
         }
     }
 
@@ -78,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                         trimtimeline(i);
                         total+=(end.get(i).getTime()- start.get(i).getTime());
                     }
-                    display = "Slept "+total/(1000l*60*60)+" hrs "+total/(1000l*60)+" min";
+                    display = total/(1000l*60*60)+" hrs "+total/(1000l*60)+" min"+total/1000l+" sec";
                     if (total>1000l*3600*24) display = "OVER 24 HOURS :o"; //workaround for trim bug
                     tv.setText(display);
                 }
