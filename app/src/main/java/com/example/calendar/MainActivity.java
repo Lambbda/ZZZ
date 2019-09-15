@@ -9,9 +9,15 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
     ArrayList<Date> start = new ArrayList<>();
     ArrayList<Date> end = new ArrayList<>();
-    long total;
-    long current;
+    long current;   //time slept in current session
     String display;
+    void trimtimeline(int i){
+        Date yesterday = new Date(new Date().getTime() - 24 * 3600 * 1000l);
+        if (end.get(i).getTime()<yesterday.getTime())
+            end.remove(i);
+            else if (start.get(i).getTime()<yesterday.getTime())
+                start.set(i,yesterday);
+    }
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -25,10 +31,12 @@ public class MainActivity extends AppCompatActivity {
                     tv.setText(display);
                 } else {
                     end.add(java.util.Calendar.getInstance().getTime());
+                    long total = 0;     //overall time slept
                     for (int i=0;i<end.size();i++){
+                        trimtimeline(i);
                         total+=(end.get(i).getTime()- start.get(i).getTime());
                     }
-                    display = "Slept "+total/1000+" seconds for last 24 hrs";
+                    display = "Slept "+total/1000*60*24+" hrs "+total/1000*60+" min";
                     tv.setText(display);
                 }
             }
