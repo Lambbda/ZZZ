@@ -13,8 +13,9 @@ public class MainActivity extends AppCompatActivity {
     String display;
     void trimtimeline(int i){
         Date yesterday = new Date(new Date().getTime() - 24 * 3600 * 1000l);
-        if (end.get(i).getTime()<yesterday.getTime())
+        if (end.get(i).getTime()<yesterday.getTime()) {
             end.remove(i);
+            start.remove(i);}
             else if (start.get(i).getTime()<yesterday.getTime())
                 start.set(i,yesterday);
     }
