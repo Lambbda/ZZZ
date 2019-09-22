@@ -3,53 +3,42 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.widget.*;
-import java.util.Date;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    ArrayList<Date> start = new ArrayList<>();  //stores times the button was pushed
-    ArrayList<Date> end = new ArrayList<>();    //and released
     String display;                             //TextView content
+    List<String> timeline = new LinkedList();
 
-    public boolean saveArray(ArrayList<Date> array)
+    public boolean saveArray()
     {
-        SharedPreferences memory = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor editor = memory.edit();
-        editor.putInt("Array_size", array.size());
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor mEdit1 = sp.edit();
+        mEdit1.putInt("Status_size", timeline.size());
 
-        for(int i=0;i<array.size();i++)
+        for(int i=0;i<timeline.size();i++)
         {
-            editor.remove("Array_" + i);
-            editor.putString("Array_" + i, Long.toString(array.get(i).getTime()));
+            mEdit1.remove("Status_" + i);
+            mEdit1.putString("Status_" + i, timeline.get(i));
         }
-        return editor.commit();
+
+        return mEdit1.commit();
     }
 
-    public void loadArray(ArrayList<Date> array)
+    public void loadArray()
     {
-        SharedPreferences memory = PreferenceManager.getDefaultSharedPreferences(this);
-        array.clear();
-        int size = memory.getInt("Array_size", 0);
+        SharedPreferences mSharedPreference1 =   PreferenceManager.getDefaultSharedPreferences(this);
+        timeline.clear();
+        int size = mSharedPreference1.getInt("Status_size", 0);
 
         for(int i=0;i<size;i++)
         {
-            array.add(new Date(Long.parseLong(memory.getString("Array_" + i, null))));
+            timeline.add(mSharedPreference1.getString("Status_" + i, null));
         }
-    }
 
-    public void trimtimeline(int i){                                       //checks if given sleep episode is within 24 hours from now
-        Date yesterday = new Date(new Date().getTime() - 24 * 3600 * 1000l);
-        if (end.get(i).getTime()<yesterday.getTime()) {             //if sleep episode ended over 24 hours ago, discard it
-            end.remove(i);
-            saveArray(end);
-            start.remove(i);
-            saveArray(start);}
-            else if (start.get(i).getTime()<yesterday.getTime()){    //trim episode to begin at least 24 hours from now
-                start.set(i,yesterday);
-                saveArray(start);
-            }
     }
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,30 +46,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ToggleButton button = findViewById(R.id.button);
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
+                timeline.add(timeStamp);
+                saveArray();
+                loadArray();
                 TextView tv = findViewById(R.id.textView);
-                if (isChecked) {
-                    start.add(new Date());
-                    display = "Sleeping...";
-                    tv.setText(display);
-                    saveArray(start);
-                } else {
-                    end.add(new Date());
-                    saveArray(end);
-                    long total = 0;                     //overall time slept
-                    loadArray(start);
-                    loadArray(end);
-                    for (int i=0;i<end.size();i++){     //sums all sleep episodes in past 24 hours
-                        trimtimeline(i);
-                        total+=(end.get(i).getTime()- start.get(i).getTime());
-                    }
-                    display = total/(1000l*60*60)+" hrs "+total/(1000l*60)+" min"+total/1000l+" sec";
-                    if (total>1000l*3600*24) display = "OVER 24 HOURS :o"; //workaround for trim bug
-                    tv.setText(display);
-                }
+                display = timeline.get(timeline.size()-1);
+                tv.setText(display);
             }
         });
-        }
     }
-
+}
