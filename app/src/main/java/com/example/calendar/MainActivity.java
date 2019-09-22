@@ -1,5 +1,4 @@
 package com.example.calendar;
-
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
