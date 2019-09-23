@@ -70,10 +70,21 @@ public class MainActivity extends AppCompatActivity {
                 done = true;
             } else done = true;
         }
+    }
 
-        extra = "limit \n" + new SimpleDateFormat(dateformat).format(yesterday);
-        TextView tv2 = findViewById(R.id.textView2);
-        tv2.setText(extra);
+    public int sumTimeline(){
+        int sum = 0;
+        if(timeline.size()>1&&timeline.get(1)!=null){
+            if (timeline.size()%2!=0) timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
+            for (int i=0;i<timeline.size();i+=2) try {
+                Date push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
+                Date pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
+                sum+=(pull.getTime()-push.getTime());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        return sum;
     }
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,12 +99,8 @@ public class MainActivity extends AppCompatActivity {
                 timeline.add(timeStamp);
                 trimArray();
                 saveArray();
-                if (isChecked) {
-                    tv.setText("Sleeping...");
-                } else {
-                    display = "first click \n"+timeline.get(0)+"\nlast click\n"+timeline.get(timeline.size()-1);
-                    tv.setText(display);
-                }
+                display = "Counted\n"+sumTimeline()/1000+" seconds\nof last 10 seconds";
+                tv.setText(display);
             }
         });
     }
