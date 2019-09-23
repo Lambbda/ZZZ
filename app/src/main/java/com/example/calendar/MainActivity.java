@@ -14,9 +14,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    String display = "Stats here";
-    String dateformat = "yyyy.MM.dd.HH.mm.ss";
+    String display = "Stats here";              //Значение текстового поля textview
+    String dateformat = "yyyy.MM.dd.HH.mm.ss";  //Унифицированный для приложения формат даты
     List<String> timeline = new LinkedList();   //График времени - список отметок во времени, когда был нажат переключатель
+    String undo1,undo2;                         //Временное хранилище для удалённых отметок
 
     public boolean saveArray()                  //Сохраняет график в памяти
     {
@@ -102,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         return sum;
     }
 
-    void updateDisplay(){
+    void updateDisplay(){                       //Обновляет статистику на экране пользователя
         TextView tv = findViewById(R.id.textView);
         display = "Slept\n"+sumTimeline()/(1000*60*60)+" hours\n"+(sumTimeline()/(1000*60))%60+" minutes\n"+(sumTimeline()/1000)%60+" seconds\n"+"\n(past 24 hours)";
         tv.setText(display);
@@ -115,7 +116,26 @@ public class MainActivity extends AppCompatActivity {
         loadArray();
         updateDisplay();
 
-        ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку на график и сохраняет его; обновляет статистику.
+        ToggleButton undo = findViewById(R.id.buttonundo);  //Кнопка отмены. Убирает или возвращает последние две точки на графике
+        final CompoundButton.OnCheckedChangeListener undolistener;
+        undo.setOnCheckedChangeListener(undolistener = new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
+                loadArray();
+                if (isChecked&&timeline.size()>1) {
+                    undo1 = timeline.get(timeline.size() - 1);
+                    undo2 = timeline.get(timeline.size() - 2);
+                    timeline.remove(timeline.size() - 1);
+                    timeline.remove(timeline.size() - 1);
+                } else {
+                    timeline.add(undo2);
+                    timeline.add(undo1);
+                }
+                saveArray();
+                updateDisplay();
+            }
+        });
+
+        ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
         button.setChecked(loadToggle());
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -126,6 +146,10 @@ public class MainActivity extends AppCompatActivity {
                 trimArray();
                 saveArray();
                 updateDisplay();
+                ToggleButton undo = findViewById(R.id.buttonundo);
+                undo.setOnCheckedChangeListener (null);     //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
+                undo.setChecked(false);                     //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
+                undo.setOnCheckedChangeListener (undolistener);
             }
         });
 
@@ -153,11 +177,8 @@ public class MainActivity extends AppCompatActivity {
                 alert.show();
             }
         });
-
     }
 }
-//TODO: bug: togglebutton can be inverted. Save button state?
 
-//TODO: fix thread
-
+//TODO: add thread
 //TODO: visualise graph
