@@ -1,6 +1,7 @@
 package com.example.calendar;
 import android.content.SharedPreferences;
-import android.graphics.Color;
+import android.graphics.*;
+import android.util.DisplayMetrics;
 import android.os.Bundle;
 import android.widget.*;
 import android.view.View;
@@ -17,47 +18,49 @@ public class MainActivity extends AppCompatActivity {
     String display = "Stats here";              //Значение текстового поля textview
     String dateformat = "yyyy.MM.dd.HH.mm.ss";  //Унифицированный для приложения формат даты
     List<String> timeline = new LinkedList();   //График времени - список отметок во времени, когда был нажат переключатель
-    String undo1,undo2;                         //Временное хранилище для удалённых отметок
+    String undo1,undo2;                         //Временное (:^)) хранилище для удалённых отметок
+    ImageView imageView;
+    DisplayMetrics displayMetrics;
+    int height = 6;
+    int width;
 
-    private boolean saveArray()                  //Сохраняет график в памяти
-    {
+    private boolean saveArray(){                 //Сохраняет график в памяти
         SharedPreferences sp = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
         SharedPreferences.Editor mEdit1 = sp.edit();
         mEdit1.putInt("Status_size", timeline.size());
-
-        for(int i=0;i<timeline.size();i++)      //Первый элемент списка сохраняется как Status_0 и т.д.
-        {
+        for(int i=0;i<timeline.size();i++){      //Первый элемент списка сохраняется как Status_0 и т.д.
             mEdit1.remove("Status_" + i);
             mEdit1.putString("Status_" + i, timeline.get(i));
         }
-
         return mEdit1.commit();
     }
 
-    private void loadArray()                     //Загружает график из памяти
-    {
+    private void loadArray(){                    //Загружает график из памяти
         SharedPreferences mSharedPreference1 = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
         timeline.clear();
         int size = mSharedPreference1.getInt("Status_size", 0);
-
-        for(int i=0;i<size;i++)
-        {
+        for(int i=0;i<size;i++) {
             timeline.add(mSharedPreference1.getString("Status_" + i, null));
         }
-
     }
 
-    private void trimArray()                    //Убирает устаревшие отметки (сделанные более 24 часов назад)
-    {
+    private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
+        loadArray();
         boolean done = false;
+        float w = width;
         Calendar cal = Calendar.getInstance();
         cal.setTime(new Date());
-        cal.add(Calendar.DATE, -1);
+        cal.add(Calendar.MINUTE, -5);
         Date yesterday = cal.getTime();         //Временная точка "ровно 24 часа назад" - предел
         Date push = new Date();                 //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между парами точек
         Date pull = new Date();
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.parseColor("#FAE7C0"));
+        Paint paint = new Paint();
+        paint.setColor(Color.parseColor("#2d3647"));
 
-        while(!done){
+        while(!done){                           //Процедура обрезания  графика, если оно заходит за 24 ч от текущего времени
             if (timeline.size()>1&&timeline.get(1)!=null) try {
                 push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
                 pull = new SimpleDateFormat(dateformat).parse(timeline.get(1));
@@ -73,23 +76,23 @@ public class MainActivity extends AppCompatActivity {
                 done = true;                    //Если устарел конец отрезка, убираем весь отрезок;
             } else done = true;                 //Если устарело начало, двигаем его до предела и прерываем цикл, т.к. предел постоянно меняется
         }
-    }
 
-    private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
-        loadArray();                            //Не понял, почему без этой строки не работает
-        trimArray();
         int sum = 0;
         if (timeline.size()%2!=0)               //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
             timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
             for (int i=0;i<timeline.size();i+=2) try {
-                Date push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
-                Date pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
-                sum+=(pull.getTime()-push.getTime());
-            } catch (ParseException e) {
+                push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
+                pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
+                sum+=(pull.getTime()-push.getTime());               //Считаем общее время
+                int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*5f));
+                int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*5f));
+                canvas.drawRect(start, 0, end+2, height, paint); //Изображаем отрезки на графике
+            } catch (ParseException e) {                            //Формула: минуты от начала графика умножить на (длина графика/минут в сутках)
                 e.printStackTrace();
             }
+        imageView.setImageBitmap(bitmap);
         TextView tv = findViewById(R.id.textView);
-        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
+        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)"+"\nstart: "+(int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
         tv.setText(display);
     }
 
@@ -113,9 +116,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         loadArray();
+
+        imageView = findViewById(R.id.graph);           //Инициализация графика на экране
+        displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        height = 6;
+        width = displayMetrics.widthPixels;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.parseColor("#FAE7C0"));
+        imageView.setImageBitmap(bitmap);
+
         updateDisplay();
 
-        Thread clock = new Thread(){
+        Thread clock = new Thread(){                    //Тред обновляет график и текст в реальном времени
             public void run() {
                 while (true) {
                     try {
@@ -179,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                 }
         });
 
-        final ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
+        final ToggleButton button = findViewById(R.id.button);    //Переключатель сна. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
         button.setChecked(sharedPreferences.getBoolean("toggle_value", true));
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -200,4 +214,3 @@ public class MainActivity extends AppCompatActivity {
 }
 
 //TODO: make thread only run in foreground
-//TODO: visualise graph

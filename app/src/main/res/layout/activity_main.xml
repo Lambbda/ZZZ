@@ -21,7 +21,7 @@
     <ToggleButton
         android:id="@+id/button"
         android:layout_width="181dp"
-        android:layout_height="108dp"
+        android:layout_height="102dp"
         android:background="#2d3647 "
         android:textColor="#FAE7C0"
         android:textOff="Sleep"
@@ -29,10 +29,9 @@
         android:textSize="36sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.863" />
+        app:layout_constraintVertical_bias="0.723" />
 
     <TextView
         android:id="@+id/textView"
@@ -71,5 +70,14 @@
         android:textOn="REDO"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/graph"
+        android:layout_width="0dp"
+        android:layout_height="3dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
