@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean saveArray()                  //Сохраняет график в памяти
     {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences sp = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
         SharedPreferences.Editor mEdit1 = sp.edit();
         mEdit1.putInt("Status_size", timeline.size());
 
@@ -34,9 +34,17 @@ public class MainActivity extends AppCompatActivity {
         return mEdit1.commit();
     }
 
+    private void clearArray(){                  //Удаляет все данные приложения
+        SharedPreferences sp = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
+        SharedPreferences.Editor mEdit1 = sp.edit();
+        mEdit1.clear();
+        mEdit1.commit();
+        timeline.clear();
+    }
+
     private void loadArray()                     //Загружает график из памяти
     {
-        SharedPreferences mSharedPreference1 = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences mSharedPreference1 = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
         timeline.clear();
         int size = mSharedPreference1.getInt("Status_size", 0);
 
@@ -90,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
         loadArray();                            //Не понял, почему без этой строки не работает
         trimArray();
         int sum = 0;
-        if(timeline.size()>1){
             if (timeline.size()%2!=0)           //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
                 timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
             for (int i=0;i<timeline.size();i+=2) try {
@@ -100,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
-        }
         TextView tv = findViewById(R.id.textView);
         display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
         tv.setText(display);
@@ -136,18 +142,18 @@ public class MainActivity extends AppCompatActivity {
         undo.setOnCheckedChangeListener(undolistener = new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
                 loadArray();
-                if (isChecked&&timeline.size()>1) {
-                    undo1 = timeline.get(timeline.size() - 1);
-                    undo2 = timeline.get(timeline.size() - 2);
-                    timeline.remove(timeline.size() - 1);
-                    timeline.remove(timeline.size() - 1);
-                } else {
-                    timeline.add(undo2);
-                    timeline.add(undo1);
+                    if (isChecked&&timeline.size()>1) {
+                        undo1 = timeline.get(timeline.size() - 1);
+                        undo2 = timeline.get(timeline.size() - 2);
+                        timeline.remove(timeline.size() - 1);
+                        timeline.remove(timeline.size() - 1);
+                    } else {
+                        timeline.add(undo2);
+                        timeline.add(undo1);
+                    }
+                    saveArray();
+                    updateDisplay();
                 }
-                saveArray();
-                updateDisplay();
-            }
         });
 
         ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
@@ -160,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
                 saveArray();
                 updateDisplay();
                 ToggleButton undo = findViewById(R.id.buttonundo);
+                undo.setClickable(!isChecked);               //Блокирует кнопку отмены во время сна
                 undo.setOnCheckedChangeListener (null);     //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
                 undo.setChecked(false);                     //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
                 undo.setOnCheckedChangeListener (undolistener);
@@ -180,9 +187,7 @@ public class MainActivity extends AppCompatActivity {
                         })
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                loadArray();
-                                timeline.clear();
-                                saveArray();
+                                clearArray();
                                 updateDisplay();
                             }
                         });
