@@ -54,11 +54,10 @@ public class MainActivity extends AppCompatActivity {
         cal.setTime(new Date());
         cal.add(Calendar.DATE, -1);
         Date yesterday = cal.getTime();         //Временная точка "ровно 24 часа назад" - предел
+        Date push = new Date();                 //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между парами точек
+        Date pull = new Date();
 
         while(!done){
-            Date push = new Date();             //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между парами точек
-            Date pull = new Date();
-
             if (timeline.size()>1&&timeline.get(1)!=null) try {
                 push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
                 pull = new SimpleDateFormat(dateformat).parse(timeline.get(1));
@@ -170,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
         Button clear = findViewById(R.id.buttonclear);      //Кнопка сброса графика с диалогом подтверждения
         clear.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
                 builder.setMessage("Reset stats?")
                         .setCancelable(true)
                         .setNeutralButton(android.R.string.cancel,
@@ -194,5 +193,6 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 
-//TODO: add thread
+//TODO: make thread only run in foreground
+//TODO: bug: timer doesnt update if timeline is empty
 //TODO: visualise graph
