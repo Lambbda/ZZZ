@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         float w = width;
         Calendar cal = Calendar.getInstance();
         cal.setTime(new Date());
-        cal.add(Calendar.MINUTE, -5);
+        cal.add(Calendar.DATE, -1);
         Date yesterday = cal.getTime();         //Временная точка "ровно 24 часа назад" - предел
         Date push = new Date();                 //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между парами точек
         Date pull = new Date();
@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-            if (pull.getTime()<yesterday.getTime()){
+            if (pull.getTime()<=yesterday.getTime()){
                 timeline.remove(0);
                 timeline.remove(0);      //Кому вообще нужны циклы
             } else if (push.getTime()<yesterday.getTime()){
@@ -83,16 +83,16 @@ public class MainActivity extends AppCompatActivity {
             for (int i=0;i<timeline.size();i+=2) try {
                 push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
                 pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
-                sum+=(pull.getTime()-push.getTime());               //Считаем общее время
-                int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*5f));
-                int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*5f));
-                canvas.drawRect(start, 0, end+2, height, paint); //Изображаем отрезки на графике
-            } catch (ParseException e) {                            //Формула: минуты от начала графика умножить на (длина графика/минут в сутках)
+                sum+=(pull.getTime()-push.getTime());                       //Считаем общее время
+                int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
+                int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*1440f));
+                canvas.drawRect(start, 0, end+3, height, paint); //Изображаем отрезки на графике
+            } catch (ParseException e) {                                    //Формула: минуты от начала графика умножить на (длина графика/минут в сутках)
                 e.printStackTrace();
             }
         imageView.setImageBitmap(bitmap);
         TextView tv = findViewById(R.id.textView);
-        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)"+"\nstart: "+(int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
+        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
         tv.setText(display);
     }
 
@@ -194,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         final ToggleButton button = findViewById(R.id.button);    //Переключатель сна. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
-        button.setChecked(sharedPreferences.getBoolean("toggle_value", true));
+        button.setChecked(sharedPreferences.getBoolean("toggle_value", false));
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
                 editor.putBoolean("toggle_value", isChecked).apply();
@@ -214,3 +214,4 @@ public class MainActivity extends AppCompatActivity {
 }
 
 //TODO: make thread only run in foreground
+//TODO: reduce complexity of updateDisplay
