@@ -45,8 +45,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
-        loadArray();
-        boolean done = false;
+        int sum = 0;
         float w = width;
         Calendar cal = Calendar.getInstance();
         cal.setTime(new Date());
@@ -59,37 +58,29 @@ public class MainActivity extends AppCompatActivity {
         canvas.drawColor(Color.parseColor("#FAE7C0"));
         Paint paint = new Paint();
         paint.setColor(Color.parseColor("#2d3647"));
+        loadArray();
 
-        while(!done){                           //Процедура обрезания  графика, если оно заходит за 24 ч от текущего времени
-            if (timeline.size()>1&&timeline.get(1)!=null) try {
-                push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
-                pull = new SimpleDateFormat(dateformat).parse(timeline.get(1));
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-
-            if (pull.getTime()<=yesterday.getTime()){
-                timeline.remove(0);
-                timeline.remove(0);      //Кому вообще нужны циклы
-            } else if (push.getTime()<yesterday.getTime()){
-                timeline.set(0,new SimpleDateFormat(dateformat).format(yesterday));
-                done = true;                    //Если устарел конец отрезка, убираем весь отрезок;
-            } else done = true;                 //Если устарело начало, двигаем его до предела и прерываем цикл, т.к. предел постоянно меняется
-        }
-
-        int sum = 0;
-        if (timeline.size()%2!=0)               //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
+        if (timeline.size()%2!=0)                       //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
             timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
-            for (int i=0;i<timeline.size();i+=2) try {
-                push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
-                pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
-                sum+=(pull.getTime()-push.getTime());                       //Считаем общее время
-                int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
-                int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*1440f));
-                canvas.drawRect(start, 0, end+3, height, paint); //Изображаем отрезки на графике
-            } catch (ParseException e) {                                    //Формула: минуты от начала графика умножить на (длина графика/минут в сутках)
-                e.printStackTrace();
+        for (int i=0;i<timeline.size();i+=2) try {
+            push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
+            pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
+            if (pull.getTime()<=yesterday.getTime()){   //Если конец отрезка более чем 24 часа назад, удаляем отрезок и начинаем заново
+                timeline.remove(0);
+                timeline.remove(0);
+                i-=2;
+                continue;
+            }else if (push.getTime()<yesterday.getTime()) {  //Если начало отрезка более чем 24 часа назад, но конец актуальный, сдвигаем начало до предела
+                timeline.set(0, new SimpleDateFormat(dateformat).format(yesterday));
+                push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
             }
+            sum+=(pull.getTime()-push.getTime());          //Считаем общее время
+            int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
+            int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*1440f));
+            canvas.drawRect(start, 0, end+5, height, paint); //Изображаем отрезки на графике. Время переводим в пиксели по формуле:
+        } catch (ParseException e) {                                    //минуты от начала графика умножить на (длину графика/минут в сутках)
+            e.printStackTrace();
+        }
         imageView.setImageBitmap(bitmap);
         TextView tv = findViewById(R.id.textView);
         display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
@@ -214,4 +205,3 @@ public class MainActivity extends AppCompatActivity {
 }
 
 //TODO: make thread only run in foreground
-//TODO: reduce complexity of updateDisplay
