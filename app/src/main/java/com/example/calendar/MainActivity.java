@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
     List<String> timeline = new LinkedList();   //График времени - список отметок во времени, когда был нажат переключатель
     String undo1,undo2;                         //Временное хранилище для удалённых отметок
 
-    public boolean saveArray()                  //Сохраняет график в памяти
+    private boolean saveArray()                  //Сохраняет график в памяти
     {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor mEdit1 = sp.edit();
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         return mEdit1.commit();
     }
 
-    public void loadArray()                     //Загружает график из памяти
+    private void loadArray()                     //Загружает график из памяти
     {
         SharedPreferences mSharedPreference1 = PreferenceManager.getDefaultSharedPreferences(this);
         timeline.clear();
@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void trimArray()                     //Убирает устаревшие отметки (сделанные более 24 часов назад)
+    private void trimArray()                    //Убирает устаревшие отметки (сделанные более 24 часов назад)
     {
         boolean done = false;
         Calendar cal = Calendar.getInstance();
@@ -56,14 +56,14 @@ public class MainActivity extends AppCompatActivity {
         Date yesterday = cal.getTime();         //Временная точка "ровно 24 часа назад" - предел
 
         while(!done){
-            Date push = new Date();
+            Date push = new Date();             //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между парами точек
             Date pull = new Date();
 
             if (timeline.size()>1&&timeline.get(1)!=null) try {
                 push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
                 pull = new SimpleDateFormat(dateformat).parse(timeline.get(1));
             } catch (ParseException e) {
-                e.printStackTrace();            //Делит точки графика на нажатие и отпуск переключателя. Сон есть отрезки между ними
+                e.printStackTrace();
             }
 
             if (pull.getTime()<yesterday.getTime()){
@@ -87,12 +87,14 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getBoolean("toggle_value", true);
     }
 
-        public int sumTimeline(){               //Считает сумму длин отрезков между "нажатие" и "отпуск"
+    private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
+        loadArray();                            //Не понял, почему без этой строки не работает
+        trimArray();
         int sum = 0;
-        if(timeline.size()>1&&timeline.get(1)!=null){
-            if (timeline.size()%2!=0)           //Если переключатель не отпущен, используем текущее время в качестве времени отпуска
+        if(timeline.size()>1){
+            if (timeline.size()%2!=0)           //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
                 timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
-            for (int i=0;i<timeline.size();i+=2) try {  //Выделяем на графике отрезки, обозначенные парами точек во времени
+            for (int i=0;i<timeline.size();i+=2) try {
                 Date push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
                 Date pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
                 sum+=(pull.getTime()-push.getTime());
@@ -100,12 +102,8 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        return sum;
-    }
-
-    void updateDisplay(){                       //Обновляет статистику на экране пользователя
         TextView tv = findViewById(R.id.textView);
-        display = "Slept\n"+sumTimeline()/(1000*60*60)+" hours\n"+(sumTimeline()/(1000*60))%60+" minutes\n"+(sumTimeline()/1000)%60+" seconds\n"+"\n(past 24 hours)";
+        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
         tv.setText(display);
     }
 
@@ -115,6 +113,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         loadArray();
         updateDisplay();
+
+        Thread clock = new Thread(){
+            public void run() {
+                while (true) {
+                    try {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateDisplay();
+                            }
+                        });
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        };
+        clock.start();
 
         ToggleButton undo = findViewById(R.id.buttonundo);  //Кнопка отмены. Убирает или возвращает последние две точки на графике
         final CompoundButton.OnCheckedChangeListener undolistener;
@@ -140,10 +156,8 @@ public class MainActivity extends AppCompatActivity {
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
                 saveToggle(isChecked);
-                String timeStamp = new SimpleDateFormat(dateformat).format(new Date());
                 loadArray();
-                timeline.add(timeStamp);
-                trimArray();
+                timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
                 saveArray();
                 updateDisplay();
                 ToggleButton undo = findViewById(R.id.buttonundo);
