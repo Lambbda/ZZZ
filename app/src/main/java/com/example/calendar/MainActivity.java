@@ -1,5 +1,6 @@
 package com.example.calendar;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.widget.*;
@@ -40,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
         mEdit1.clear();
         mEdit1.commit();
         timeline.clear();
+        undo1=null;
+        undo2=null;
     }
 
     private void loadArray()                     //Загружает график из памяти
@@ -83,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void saveToggle(boolean isToggled) {//Сохраняет состояние переключателя в памяти, т.к. это элемент интерфейса
+    private void saveToggle(boolean isToggled) {//Сохраняет состояние переключателя в памяти
         SharedPreferences sharedPreferences = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
         final SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean("toggle_value", isToggled).apply();
@@ -98,8 +101,6 @@ public class MainActivity extends AppCompatActivity {
         loadArray();                            //Не понял, почему без этой строки не работает
         trimArray();
         int sum = 0;
-            if (timeline.size()%2!=0)           //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
-                timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
             for (int i=0;i<timeline.size();i+=2) try {
                 Date push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
                 Date pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
@@ -137,6 +138,29 @@ public class MainActivity extends AppCompatActivity {
         };
         clock.start();
 
+        final Button clear = findViewById(R.id.buttonclear);//Кнопка сброса графика с диалогом подтверждения
+        clear.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
+                builder.setMessage("Reset stats?")
+                        .setCancelable(true)
+                        .setNeutralButton(android.R.string.cancel,
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                })
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                clearArray();
+                                updateDisplay();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+        });
+
         ToggleButton undo = findViewById(R.id.buttonundo);  //Кнопка отмены. Убирает или возвращает последние две точки на графике
         final CompoundButton.OnCheckedChangeListener undolistener;
         undo.setOnCheckedChangeListener(undolistener = new CompoundButton.OnCheckedChangeListener() {
@@ -147,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                         undo2 = timeline.get(timeline.size() - 2);
                         timeline.remove(timeline.size() - 1);
                         timeline.remove(timeline.size() - 1);
-                    } else {
+                    } else if (undo1!=null&&undo2!=null){
                         timeline.add(undo2);
                         timeline.add(undo1);
                     }
@@ -166,38 +190,23 @@ public class MainActivity extends AppCompatActivity {
                 saveArray();
                 updateDisplay();
                 ToggleButton undo = findViewById(R.id.buttonundo);
-                undo.setClickable(!isChecked);               //Блокирует кнопку отмены во время сна
-                undo.setOnCheckedChangeListener (null);     //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
-                undo.setChecked(false);                     //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
-                undo.setOnCheckedChangeListener (undolistener);
-            }
-        });
-
-        Button clear = findViewById(R.id.buttonclear);      //Кнопка сброса графика с диалогом подтверждения
-        clear.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
-                builder.setMessage("Reset stats?")
-                        .setCancelable(true)
-                        .setNeutralButton(android.R.string.cancel,
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        })
-                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                clearArray();
-                                updateDisplay();
-                            }
-                        });
-                AlertDialog alert = builder.create();
-                alert.show();
+                undo.setClickable(!isChecked);              //Блокирует кнопки отмены и сброса во время сна
+                clear.setClickable(!isChecked);
+                if (isChecked) {
+                    undo.setTextColor(Color.parseColor("#191e28"));
+                    clear.setTextColor(Color.parseColor("#191e28"));
+                }
+                else {
+                    undo.setTextColor(Color.parseColor("#FAE7C0"));
+                    clear.setTextColor(Color.parseColor("#FAE7C0"));
+                    undo.setOnCheckedChangeListener (null); //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
+                    undo.setChecked(false);                 //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
+                    undo.setOnCheckedChangeListener (undolistener);
+                }
             }
         });
     }
 }
 
 //TODO: make thread only run in foreground
-//TODO: bug: timer doesnt update if timeline is empty
 //TODO: visualise graph
