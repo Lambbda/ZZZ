@@ -1,7 +1,6 @@
 package com.example.calendar;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.widget.*;
 import android.view.View;
@@ -33,16 +32,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return mEdit1.commit();
-    }
-
-    private void clearArray(){                  //Удаляет все данные приложения
-        SharedPreferences sp = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
-        SharedPreferences.Editor mEdit1 = sp.edit();
-        mEdit1.clear();
-        mEdit1.commit();
-        timeline.clear();
-        undo1=null;
-        undo2=null;
     }
 
     private void loadArray()                     //Загружает график из памяти
@@ -86,21 +75,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void saveToggle(boolean isToggled) {//Сохраняет состояние переключателя в памяти
-        SharedPreferences sharedPreferences = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
-        final SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean("toggle_value", isToggled).apply();
-    }
-
-    private Boolean loadToggle(){               //Загружает состояние переключателя из памяти
-        SharedPreferences sharedPreferences = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
-        return sharedPreferences.getBoolean("toggle_value", true);
-    }
-
     private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
         loadArray();                            //Не понял, почему без этой строки не работает
         trimArray();
         int sum = 0;
+        if (timeline.size()%2!=0)               //Добавляем недостающий конец отрезка - например, в случае, когда переключатель нажат
+            timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
             for (int i=0;i<timeline.size();i+=2) try {
                 Date push = new SimpleDateFormat(dateformat).parse(timeline.get(i));
                 Date pull = new SimpleDateFormat(dateformat).parse(timeline.get(i+1));
@@ -113,7 +93,22 @@ public class MainActivity extends AppCompatActivity {
         tv.setText(display);
     }
 
+    private void blockButtons(ToggleButton button, ToggleButton undo, Button clear){ //Блокирует кнопки отмены и сброса во время сна
+        undo.setClickable(!button.isChecked());
+        clear.setClickable(!button.isChecked());
+        if (button.isChecked()) {
+            undo.setTextColor(Color.parseColor("#191e28"));
+            clear.setTextColor(Color.parseColor("#191e28"));
+        }
+        else {
+            undo.setTextColor(Color.parseColor("#FAE7C0"));
+            clear.setTextColor(Color.parseColor("#FAE7C0"));
+        }
+    }
+
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences sharedPreferences = this.getSharedPreferences("preferences", this.MODE_PRIVATE);
+        final SharedPreferences.Editor editor = sharedPreferences.edit();
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -144,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
                 builder.setMessage("Reset stats?")
                         .setCancelable(true)
-                        .setNeutralButton(android.R.string.cancel,
+                        .setNeutralButton("No",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
                                         dialog.cancel();
@@ -152,7 +147,11 @@ public class MainActivity extends AppCompatActivity {
                                 })
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                clearArray();
+                                editor.clear();
+                                editor.commit();
+                                timeline.clear();
+                                undo1=null;
+                                undo2=null;
                                 updateDisplay();
                             }
                         });
@@ -161,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        ToggleButton undo = findViewById(R.id.buttonundo);  //Кнопка отмены. Убирает или возвращает последние две точки на графике
+        final ToggleButton undo = findViewById(R.id.buttonundo);  //Кнопка отмены. Убирает или возвращает последние две точки на графике
         final CompoundButton.OnCheckedChangeListener undolistener;
         undo.setOnCheckedChangeListener(undolistener = new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -180,31 +179,23 @@ public class MainActivity extends AppCompatActivity {
                 }
         });
 
-        ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
-        button.setChecked(loadToggle());
+        final ToggleButton button = findViewById(R.id.button);    //Переключатель. Добавляет отметку с временем взаимодействия на график и сохраняет его; обновляет статистику.
+        button.setChecked(sharedPreferences.getBoolean("toggle_value", true));
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
-                saveToggle(isChecked);
+                editor.putBoolean("toggle_value", isChecked).apply();
                 loadArray();
                 timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
                 saveArray();
                 updateDisplay();
                 ToggleButton undo = findViewById(R.id.buttonundo);
-                undo.setClickable(!isChecked);              //Блокирует кнопки отмены и сброса во время сна
-                clear.setClickable(!isChecked);
-                if (isChecked) {
-                    undo.setTextColor(Color.parseColor("#191e28"));
-                    clear.setTextColor(Color.parseColor("#191e28"));
-                }
-                else {
-                    undo.setTextColor(Color.parseColor("#FAE7C0"));
-                    clear.setTextColor(Color.parseColor("#FAE7C0"));
-                    undo.setOnCheckedChangeListener (null); //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
-                    undo.setChecked(false);                 //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
-                    undo.setOnCheckedChangeListener (undolistener);
-                }
+                blockButtons(button,undo,clear);
+                undo.setOnCheckedChangeListener (null); //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
+                undo.setChecked(false);                 //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
+                undo.setOnCheckedChangeListener (undolistener);
             }
         });
+        blockButtons(button,undo,clear);
     }
 }
 
