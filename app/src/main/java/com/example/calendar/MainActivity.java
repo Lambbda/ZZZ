@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateDisplay(){               //Считает сумму отрезков и выводит её в текстовое поле на экране
+    private void updateDisplay(){               //Обновляет UI: график (значения, внешний вид) и текстовое поле.
         int sum = 0;
         float w = width;
         Calendar cal = Calendar.getInstance();
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                 timeline.set(0, new SimpleDateFormat(dateformat).format(yesterday));
                 push = new SimpleDateFormat(dateformat).parse(timeline.get(0));
             }
-            sum+=(pull.getTime()-push.getTime());          //Считаем общее время
+            sum+=(pull.getTime()-push.getTime());            //Считаем общее время
             int start = (int) ((push.getTime()-yesterday.getTime())*w/(60*1000*1440f));
             int end = (int) ((pull.getTime()-yesterday.getTime())*w/(60*1000*1440f));
             canvas.drawRect(start, 0, end+5, height, paint); //Изображаем отрезки на графике. Время переводим в пиксели по формуле:
