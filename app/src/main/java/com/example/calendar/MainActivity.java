@@ -156,11 +156,9 @@ public class MainActivity extends AppCompatActivity {
                                 })
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                editor.clear();
-                                editor.commit();
-                                timeline.clear();
-                                undo1=null;
-                                undo2=null;
+                                loadArray();
+                                timeline.add(new SimpleDateFormat(dateformat).format("0.0.0.0."+numberPicker.getValue()+".0"));
+                                saveArray();
                                 updateDisplay();
                             }
                         });
