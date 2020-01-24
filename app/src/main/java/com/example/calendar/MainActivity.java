@@ -138,6 +138,37 @@ public class MainActivity extends AppCompatActivity {
         };
         clock.start();
 
+        final Button add = findViewById(R.id.buttonadd);//Кнопка ручного добавления времени
+        final NumberPicker numberPicker = new NumberPicker(this);
+        numberPicker.setMaxValue(360);
+        numberPicker.setMinValue(0);
+        add.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
+                builder.setView(numberPicker);
+                builder.setMessage("Reset stats?")
+                        .setCancelable(true)
+                        .setNeutralButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                })
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                editor.clear();
+                                editor.commit();
+                                timeline.clear();
+                                undo1=null;
+                                undo2=null;
+                                updateDisplay();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+        });
+
         final Button clear = findViewById(R.id.buttonclear);//Кнопка сброса графика с диалогом подтверждения
         clear.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
