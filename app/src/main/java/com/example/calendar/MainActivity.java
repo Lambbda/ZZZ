@@ -172,7 +172,22 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton("+", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
                                 loadArray();
-
+                                int adjustment = (Integer.parseInt(input.getText().toString()))*60*1000;
+                                    if (timeline.size()<2 || timeline==null){
+                                        timeline.add(new SimpleDateFormat(dateformat).format(new Date().getTime()-adjustment));
+                                        timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
+                                    } else try {
+                                        Date date1 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size() - 1));
+                                        Date date2 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size() - 2));
+                                        if (date1.getTime() + adjustment > new Date().getTime()) {
+                                            adjustment -= (new Date().getTime() - date1.getTime());
+                                            timeline.set(timeline.size() - 1, new SimpleDateFormat(dateformat).format(new Date()));
+                                            timeline.set(timeline.size() - 2, new SimpleDateFormat(dateformat).format(date2.getTime() - adjustment));
+                                        } else
+                                            timeline.set(timeline.size() - 1, new SimpleDateFormat(dateformat).format(date1.getTime() + adjustment));
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
                                 saveArray();
                                 updateDisplay();
                             }
