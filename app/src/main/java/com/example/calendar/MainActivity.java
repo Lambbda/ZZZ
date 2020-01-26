@@ -9,9 +9,11 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import android.text.InputType;
 import java.util.*;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -83,20 +85,25 @@ public class MainActivity extends AppCompatActivity {
         }
         imageView.setImageBitmap(bitmap);
         TextView tv = findViewById(R.id.textView);
-        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
+        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n";
         tv.setText(display);
     }
 
-    private void blockButtons(ToggleButton button, ToggleButton undo, Button clear){ //Блокирует кнопки отмены и сброса во время сна
-        undo.setClickable(!button.isChecked());
-        clear.setClickable(!button.isChecked());
-        if (button.isChecked()) {
-            undo.setTextColor(Color.parseColor("#191e28"));
-            clear.setTextColor(Color.parseColor("#191e28"));
-        }
-        else {
-            undo.setTextColor(Color.parseColor("#FAE7C0"));
-            clear.setTextColor(Color.parseColor("#FAE7C0"));
+    ArrayList<View> allButtons;
+
+    private void blockButtons(ToggleButton button){     //Блокирует кнопки управления во время сна
+        if (allButtons == null)
+            allButtons = (findViewById(R.id.coordinatorLayout)).getTouchables();
+        allButtons.remove(button);
+        for(View view:allButtons){
+            Button control = (Button) view;
+            control.setClickable(!button.isChecked());
+            if (button.isChecked()) {
+                control.setTextColor(Color.parseColor("#191e28"));
+            }
+            else {
+                control.setTextColor(Color.parseColor("#FAE7C0"));
+            }
         }
     }
 
@@ -137,6 +144,81 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         clock.start();
+
+        final Button add = findViewById(R.id.buttonadd);        //Кнопка ручного добавления времени
+        add.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this,R.style.MyDialogTheme);
+                final EditText input = new EditText(MainActivity.this);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT);
+                try {
+                    input.setLayoutParams(lp);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                input.setTextColor(getResources().getColor(R.color.colorAccent));
+                input.setInputType(InputType.TYPE_CLASS_NUMBER);
+                builder.setView(input);
+                builder.setMessage("Adjust time in minutes")
+                        .setCancelable(true)
+                        .setNeutralButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                })
+                        .setPositiveButton("+", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                loadArray();
+                                int adjustment = (Integer.parseInt(input.getText().toString()))*60*1000;
+                                    if (timeline.size()<2 || timeline==null){
+                                        timeline.add(new SimpleDateFormat(dateformat).format(new Date().getTime()-adjustment));
+                                        timeline.add(new SimpleDateFormat(dateformat).format(new Date()));
+                                    } else try {
+                                        Date date1 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size() - 1));
+                                        Date date2 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size() - 2));
+                                        if (date1.getTime() + adjustment > new Date().getTime()) {
+                                            adjustment -= (new Date().getTime() - date1.getTime());
+                                            timeline.set(timeline.size() - 1, new SimpleDateFormat(dateformat).format(new Date()));
+                                            timeline.set(timeline.size() - 2, new SimpleDateFormat(dateformat).format(date2.getTime() - adjustment));
+                                        } else
+                                            timeline.set(timeline.size() - 1, new SimpleDateFormat(dateformat).format(date1.getTime() + adjustment));
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                                saveArray();
+                                updateDisplay();
+                            }
+                        })
+                        .setNegativeButton("-", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                loadArray();
+                                int adjustment = (Integer.parseInt(input.getText().toString()))*60*1000;
+                                while(adjustment>0 && timeline.size()>1) try {
+                                    Date date1 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size()-1));
+                                    Date date2 = new SimpleDateFormat(dateformat).parse(timeline.get(timeline.size()-2));
+                                    if (date1.getTime()-date2.getTime()<adjustment){               //При вычитании: если последний отрезок короче правки, удаляем целиком
+                                        adjustment-=(date1.getTime()-date2.getTime());
+                                        timeline.remove(timeline.size()-1);
+                                        timeline.remove(timeline.size()-1);
+                                    } else {
+                                        date2 = new Date(date1.getTime()-adjustment);              //Иначе укорачиваем отрезок
+                                        timeline.set(timeline.size()-1,new SimpleDateFormat(dateformat).format(date2));
+                                        adjustment=0;
+                                    }
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                                saveArray();
+                                updateDisplay();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+        });
 
         final Button clear = findViewById(R.id.buttonclear);//Кнопка сброса графика с диалогом подтверждения
         clear.setOnClickListener(new View.OnClickListener() {
@@ -194,13 +276,13 @@ public class MainActivity extends AppCompatActivity {
                 saveArray();
                 updateDisplay();
                 ToggleButton undo = findViewById(R.id.buttonundo);
-                blockButtons(button,undo,clear);
+                blockButtons(button);
                 undo.setOnCheckedChangeListener (null); //Изменение графика сбрасывает состояние кнопки отмены. Чтобы она при этом не срабатывала,
                 undo.setChecked(false);                 //временно убираем детектор срабатывания с кнопки. Для этого undolistener объявлен отдельно.
                 undo.setOnCheckedChangeListener (undolistener);
             }
         });
-        blockButtons(button,undo,clear);
+        blockButtons(button);
     }
 }
 
