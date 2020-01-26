@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         }
         imageView.setImageBitmap(bitmap);
         TextView tv = findViewById(R.id.textView);
-        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n"+"\n(past 24 hours)";
+        display = "Slept\n"+sum/(1000*60*60)+" hours\n"+(sum/(1000*60))%60+" minutes\n"+(sum/1000)%60+" seconds\n";
         tv.setText(display);
     }
 
